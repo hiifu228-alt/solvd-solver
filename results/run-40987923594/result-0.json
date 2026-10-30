@@ -1,0 +1,14 @@
+{
+ "shard": 0,
+ "nshards": 8,
+ "board_index": 0,
+ "status": "timeout",
+ "seconds": 520.302,
+ "work": 292334,
+ "dfs_work": 292080,
+ "expansion_work": 254,
+ "subproblems_total": 128,
+ "subproblems_mine": 16,
+ "found_subproblem": null,
+ "workers": 4
+}
