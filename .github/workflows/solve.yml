@@ -1,0 +1,49 @@
+name: solve
+on:
+  workflow_dispatch:
+    inputs:
+      challenge_url:
+        description: "URL of the challenge JSON"
+        required: true
+        type: string
+      time_limit:
+        description: "Per-shard time limit in seconds"
+        required: false
+        default: "520"
+        type: string
+permissions:
+  contents: write
+jobs:
+  solve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download challenge
+        run: curl -sL "${{ inputs.challenge_url }}" -o challenge.json
+      - name: Solve shard
+        run: python3 solve_shard.py challenge.json 8 ${{ matrix.shard }} "${{ inputs.time_limit }}" result-${{ matrix.shard }}.json
+      - name: Commit result to results branch
+        continue-on-error: true
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          git config user.name "solvd-solver"
+          git config user.email "solvd-solver@users.noreply.github.com"
+          git checkout -B results
+          mkdir -p "results/run-${{ github.run_id }}"
+          cp "result-${SHARD}.json" "results/run-${{ github.run_id }}/"
+          git add "results/run-${{ github.run_id }}/result-${SHARD}.json"
+          git commit -m "shard ${SHARD} result for run ${{ github.run_id }}"
+          for i in 1 2 3 4 5; do
+            if git push origin results; then break; fi
+            git pull --rebase origin results || true
+            sleep $((i * 3))
+          done
